@@ -1,8 +1,9 @@
 package BatchAnalysis;
 
 import java.io.Serializable;
+import java.text.ParseException;
 import java.util.Date;
-
+import BatchAnalysis.SparkBatch;
 
 
 @SuppressWarnings("serial")
@@ -34,8 +35,13 @@ public class SearchEntry implements Serializable{
 	public Date getDate() {
 		return date;
 	}
-	public void setDate(Date date) {
-		this.date =  dateFormat.parse(date);
+	public void setDate(String date) {
+		try {
+			this.date =  SparkBatch.dateFormat.parse(date);
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	public int getPos() {
 		return pos;

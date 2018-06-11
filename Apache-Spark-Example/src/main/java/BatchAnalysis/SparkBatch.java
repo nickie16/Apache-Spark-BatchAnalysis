@@ -3,12 +3,11 @@ package BatchAnalysis;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoder;
 import org.apache.spark.sql.Encoders;
-import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import static org.apache.spark.sql.functions.col;
 
 public class SparkBatch {
 	
@@ -46,11 +45,22 @@ public class SparkBatch {
 		Encoder<SearchEntry> entryEncoder = Encoders.bean(SearchEntry.class);
 		
 		Dataset<SearchEntry> entryDS = spark.read().format("csv")
-			    .option("sep", "\t")
-			    .load("")
+			    .option("delimiter", "\t")
+			    .option("header", "true")
+			    .load("hdfs:/user/nickiemand16/" + args[0])
 			    .as(entryEncoder);
 		
-		entryDS.show();
+		entryDS.show(false);
 		
+		//#################################    2.1    ##################################
+		entryDS.withColumn("day", col("date")); //use udf to get just the date or we should do it at loading
+
+		//#################################    2.2    ##################################
+		long success = entryDS.filter(col("pos").isNotNull()).count();
+		long entries = entryDS.count();
+		System.out.println("Total searches: " + entries);
+		System.out.println("Success searches percentage: " + success * 100.0 / entries + " %");
+		System.out.println("Unsuccess searches percentage: " + (entries - success) * 100.0 / entries + " %");
+		 
 	}
 }
