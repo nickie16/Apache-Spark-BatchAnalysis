@@ -106,9 +106,6 @@ public class SparkBatch {
 				.filter(col("distinctVisitors").$greater(10)).orderBy("url");
 		
 		urlDS.orderBy("distinctVisitors").show(100,false); // System.out.println("Count pages" + urlDS.count()); ~15 xil selides deixnoume top 100
-		
-		
-		
 	
 	}
 }
