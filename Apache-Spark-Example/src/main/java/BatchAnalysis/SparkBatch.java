@@ -32,7 +32,8 @@ public class SparkBatch {
 		spark.udf().register("extractYear", (String s) -> {
 			Date date = dateFormat.parse(s);
 			return date.getYear();
-		}, DataTypes.IntegerType);
+		}, DataTypes.IntegerType); //example of udf
+		
 		/*
 		// Create an RDD of SearchEntry objects from a text file
 		JavaRDD<SearchEntry> entryRDD = spark.read()
@@ -67,7 +68,7 @@ public class SparkBatch {
 		
 		//#################################    2.1    ##################################
 		/*
-		//Dataset<Row> yearDS = entryDS.withColumn("day", callUDF("extractYear",col("date")));
+		//Dataset<Row> yearDS = entryDS.withColumn("day", callUDF("extractYear",col("date"))); // example of using udf
 		Dataset<Row> newDS = entryDS
 				.withColumn("dayofyear", dayofyear(col("date")))
 				.withColumn("weekofyear", weekofyear(col("date")))
