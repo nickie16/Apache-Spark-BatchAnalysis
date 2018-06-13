@@ -3,6 +3,8 @@ package BatchAnalysis;
 import java.io.Serializable;
 import java.text.ParseException;
 import java.util.Date;
+import java.util.List;
+
 import BatchAnalysis.SparkBatch;
 
 
@@ -11,6 +13,7 @@ public class SearchEntry implements Serializable{
 	
 	private String userid;
 	private String keywords; //isws xreiastei na ginei lista
+	//private List<String> keywords2;
 	private Date date;
 	private int pos;
 	private String url;
@@ -32,6 +35,15 @@ public class SearchEntry implements Serializable{
 	public void setKeywords(String keywords) {
 		this.keywords = keywords;
 	}
+	/*
+	public List<String> getKeywords2() {
+		return keywords2;
+	}
+	public void setKeywords2(String tokens) {
+		for(String token : tokens.split(" "))
+		keywords2.add(token);
+	}
+	 */
 	public Date getDate() {
 		return date;
 	}

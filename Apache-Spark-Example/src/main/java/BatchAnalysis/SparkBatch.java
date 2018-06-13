@@ -17,6 +17,10 @@ import static org.apache.spark.sql.functions.dayofyear;
 import static org.apache.spark.sql.functions.month;
 import static org.apache.spark.sql.functions.weekofyear;
 import static org.apache.spark.sql.functions.count;
+import static org.apache.spark.sql.functions.countDistinct;
+import static org.apache.spark.sql.functions.explode;
+import static org.apache.spark.sql.functions.split;
+import static org.apache.spark.sql.functions.substring;
 
 public class SparkBatch {
 	
@@ -28,11 +32,19 @@ public class SparkBatch {
 				  .builder()
 				  .appName("BatchAnalysis")
 				  .getOrCreate();
+		
+		//#################################    UDFs    ##################################
 
 		spark.udf().register("extractYear", (String s) -> {
 			Date date = dateFormat.parse(s);
 			return date.getYear();
 		}, DataTypes.IntegerType); //example of udf
+		
+		spark.udf().register("isNum", (String s) -> {
+			if (s==null || s.isEmpty()) return "NAN";
+			char c = s.charAt(0);
+			return Character.isDigit(c) ? "0" : s;
+		}, DataTypes.StringType); // kati paei poly lathos	
 		
 		/*
 		// Create an RDD of SearchEntry objects from a text file
@@ -55,16 +67,23 @@ public class SparkBatch {
 		Dataset<Row> entryDF = spark.createDataFrame(entryRDD, SearchEntry.class);
 		*/
 		
+		//#################################    loading data    ##################################
 		// Encoders are created for Java beans
 		Encoder<SearchEntry> entryEncoder = Encoders.bean(SearchEntry.class);
 		
-		Dataset<SearchEntry> entryDS = spark.read().format("csv")
+		Dataset<SearchEntry> entryDS = spark.read()  //de fainetai diafora me th dikh mas ektelesh ths askhshs h xrhsh datasets enanti df
 			    .option("delimiter", "\t")
 			    .option("header", "true")
-			    .load("hdfs:/user/nickiemand16/" + args[0])
+			    .csv("hdfs:/user/nickiemand16/" + args[0])
 			    .as(entryEncoder);
 		
 		//entryDS.show(false);
+		
+		Dataset<Row> wikiDF = spark.read()
+				.option("header", "true")
+				.csv("hdfs:/user/nickiemand16/" + args[1]);
+		
+		//wikiDF.show(false);
 		
 		//#################################    2.1    ##################################
 		/*
@@ -99,14 +118,36 @@ public class SparkBatch {
 		 */
 		
 		//#################################    2.3    ##################################
-		
-		//diplo group by wste na metrhsoyme episkepseis mono apo monadikous xrhstes
-		//na dw countDistinct
-		Dataset<Row> urlDS = succEntryDS.groupBy("url","userid").agg(count("*"))
-				.groupBy("url").agg(count("*").as("distinctVisitors"))
-				.filter(col("distinctVisitors").$greater(10)).orderBy("url");
-		
-		urlDS.orderBy("distinctVisitors").show(100,false); // System.out.println("Count pages" + urlDS.count()); ~15 xil selides deixnoume top 100
+		/*
+		Dataset<Row> urlDS = succEntryDS.groupBy("url").agg(countDistinct(col("userid")).as("distinctVisitors")) //anti diplou group by poy xrisimopoioysame paliotera
+				.filter(col("distinctVisitors").$greater(10))
+				.orderBy(col("distinctVisitors").desc());
 	
+		urlDS.show(100,false);   // System.out.println("Count pages" + urlDS.count()); ~15 xil selides deixnoume top 100
+ 		*/	
+		//#################################    2.4    ##################################
+		/*
+		Dataset<Row> keywordDS = entryDS.select("userid","keywords")
+				.withColumn("keywords",explode(split(col("keywords")," ")))
+				.groupBy("keywords").agg(count("*").as("Apperances"))
+				.orderBy(col("Apperances").desc());
+				;
+		keywordDS.show(50,false);
+		
+		System.out.println("Distinct keywords" + keywordDS.count());
+		*/
+		//#################################    2.5.1    ##################################
+		
+		Dataset<Row> wikiWordDF = wikiDF.withColumn("title", explode(split(col("title"),"_")))
+			.withColumn("firstLetter", substring(col("title"),0,1))
+			.groupBy("firstLetter").agg(count("*").as("apperances"))
+			.filter(col("firstLetter").isNotNull())
+			.withColumn("firstLetter", callUDF("isNum",col("firstLetter")))
+			.orderBy("firstLetter");
+		
+		wikiWordDF.show(1000,false);
+		
+		//System.out.println("Count words: " + wikiWordDF.count()); //38.809.498 keywords
+		
 	}
 }
