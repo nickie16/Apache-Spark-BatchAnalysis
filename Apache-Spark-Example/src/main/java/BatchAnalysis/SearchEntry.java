@@ -12,7 +12,7 @@ import BatchAnalysis.SparkBatch;
 public class SearchEntry implements Serializable{
 	
 	private String userid;
-	private String keywords; //isws xreiastei na ginei lista
+	private String keywords; 
 	//private List<String> keywords2;
 	private Date date;
 	private int pos;
