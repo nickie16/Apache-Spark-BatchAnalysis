@@ -1,8 +1,6 @@
 package BatchAnalysis;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.lang.*;
 
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoder;
@@ -13,7 +11,6 @@ import org.apache.spark.sql.types.DataTypes;
 
 import static org.apache.spark.sql.functions.col;
 import static org.apache.spark.sql.functions.callUDF;
-import static org.apache.spark.sql.functions.dayofmonth;
 import static org.apache.spark.sql.functions.dayofyear;
 import static org.apache.spark.sql.functions.month;
 import static org.apache.spark.sql.functions.weekofyear;
@@ -60,6 +57,7 @@ public class SparkBatch {
 		}, DataTypes.StringType);
 		
 		//#################################    loading data    ##################################
+		
 		// Encoders are created for Java beans
 		Encoder<SearchEntry> entryEncoder = Encoders.bean(SearchEntry.class);
 		
@@ -67,17 +65,16 @@ public class SparkBatch {
 			    .option("delimiter", "\t")
 			    .option("header", "true")
 			    .csv("hdfs:/user/nickiemand16/" + args[0])
-			    .as(entryEncoder);
+			    .as(entryEncoder)
+			    .persist();
 		
-		entryDS.printSchema();
-		
-		Dataset<Row> entryDF = spark.read()  //de fainetai diafora me th dikh mas ektelesh ths askhshs h xrhsh datasets enanti df
+		/*Dataset<Row> entryDF = spark.read() 
 			    .option("delimiter", "\t")
 			    .option("header", "true")
 			    .option("inferSchema", "true")
 			    .csv("hdfs:/user/nickiemand16/" + args[0]);
 		
-		entryDF.printSchema();
+		entryDF.printSchema();*/
 		
 		Dataset<Row> wikiDF = spark.read() //inferring the schema
 				.option("header", "true")
@@ -88,17 +85,15 @@ public class SparkBatch {
 				.csv("hdfs:/user/nickiemand16/" + args[2]);
 		
 		//#################################    2.1    ##################################
-		/*
-		//Dataset<Row> yearDS = entryDS.withColumn("day", callUDF("extractYear",col("date"))); // example of using udf
-		Dataset<Row> newDS = entryDS
-				.withColumn("dayofyear", dayofyear(col("date")))
+		
+		Dataset<Row> newDS = entryDS.withColumn("dayofyear", dayofyear(col("date")))
 				.withColumn("weekofyear", weekofyear(col("date")))
 				.withColumn("month", month(col("date")))
 				.persist();
 		
 		Dataset<Row> dayDS = newDS.groupBy("dayofyear").agg(count("*").as("SearchesPerDay")).orderBy("dayofyear");
 
-		dayDS.show(366,false); //try with map function ?
+		dayDS.show(366,false); // me xrhsh udf boroume na apeikonizoyme kalytera thn sthlh ths hmeromhnias
 		
 		Dataset<Row> weekDS = newDS.groupBy("weekofyear").agg(count("*").as("SearchesPerWeek")).orderBy("weekofyear");
 		
@@ -106,90 +101,82 @@ public class SparkBatch {
 		
 		Dataset<Row> monthDS = newDS.groupBy("month").agg(count("*").as("SearchesPerMonth")).orderBy("month");
 
-		monthDS.show(12,false); // me xrhsh udf boroume na apeikonizoyme kalytera thn sthlh ths hmeromhnias
-		*/
+		monthDS.show(12,false); 
 		
 		//#################################    2.2    ##################################
-		Dataset<SearchEntry> succEntryDS = entryDS.filter(col("pos").isNotNull());
+		Dataset<SearchEntry> succEntryDF = entryDS.filter(col("pos").isNotNull());
 		
-		long success = succEntryDS.count();
+		long success = succEntryDF.count();
 		long entries = entryDS.count();
-		/*System.out.println("Total searches: " + entries);
+		System.out.println("Total searches: " + entries);
 		System.out.println("Success searches percentage: " + success * 100.0 / entries + " %");
 		System.out.println("Unsuccess searches percentage: " + (entries - success) * 100.0 / entries + " %");
-		 */
-		
+		 
 		//#################################    2.3    ##################################
-		/*
-		Dataset<Row> urlDS = succEntryDS.groupBy("url").agg(countDistinct(col("userid")).as("distinctVisitors")) //anti diplou group by poy xrisimopoioysame paliotera
+		
+		Dataset<Row> urlDS = succEntryDF.groupBy("url").agg(countDistinct(col("userid")).as("distinctVisitors")) //anti diplou group by poy xrisimopoioysame
 				.filter(col("distinctVisitors").$greater(10))
 				.orderBy(col("distinctVisitors").desc());
 	
 		urlDS.show(100,false);   // System.out.println("Count pages" + urlDS.count()); ~15 xil selides deixnoume top 100
- 		*/	
+		
 		//#################################    2.4    ##################################
-		/*
+		
 		Dataset<Row> keywordDS = entryDS.select("userid","keywords")
 				.withColumn("keywords",explode(split(col("keywords")," ")))
-				.groupBy("keywords").agg(count("*").as("Apperances"))
-				.orderBy(col("Apperances").desc());
+				.groupBy("keywords").agg(count("*").as("Appearances"))
+				.orderBy(col("Appearances").desc());
 				
 		keywordDS.show(50,false);
 		
-		System.out.println("Distinct keywords" + keywordDS.count());
-		*/
+		System.out.println("Distinct keywords: " + keywordDS.count());
+		
 		//#################################    2.5.1    ##################################
 		
 		Dataset<Row> wikiWordDF = wikiDF.withColumn("title", explode(split(col("title"),"_")))
-			.filter( callUDF("isDummy",col("title"))).persist();
-		/*
-		Dataset<Row> wikiFilterDF = wikiWordDF
-			.withColumn("firstLetter", substring(col("title"),0,1))
-			.withColumn("firstLetter", callUDF("classify",col("firstLetter")))
-			.groupBy("firstLetter").agg(count("*").as("apperances"));
+			.filter(callUDF("isDummy",col("title"))).persist();
 		
 		WindowSpec window = Window.rowsBetween(Window.unboundedPreceding(),Window.unboundedFollowing()); 
 		//gia to warning sxetika me to oti den yparxei partition, de mporoume na kanoume kati, 
 		//de xreiazomaste partition se kapoia sthlh afou theloume aggregate se olo to pinaka alliws ola 100%
 		
-		wikiFilterDF.withColumn("frequency", (col("apperances").multiply(100.0F)).divide(sum(col("apperances")).over(window)))
-			.orderBy("firstLetter").show(28,false);
-		*/
-		//#################################    2.5.2    ##################################		
+		Dataset<Row> wikiFilterDF = wikiWordDF.withColumn("firstLetter", substring(col("title"),0,1))
+			.withColumn("firstLetter", callUDF("classify",col("firstLetter")))
+			.groupBy("firstLetter").agg(count("*").as("appearances"))  //Appearances till here 
+			.withColumn("frequency", (col("appearances").multiply(100.0F)).divide(sum(col("appearances")).over(window)))  //frequencies
+			.orderBy("firstLetter");
+			
+		wikiFilterDF.show(28,false);
 		
-		Dataset<Row> wikiWords = wikiWordDF.orderBy("title").persist();
-		/*
-		wikiWords.show(400);
-		wikiWords.repartition(10) //creates only 10 partitions
+		//#################################    2.5.2    ##################################		
+
+		wikiWordDF.orderBy("title").repartition(10) //creates only 10 partitions
 			.write()
 		    .option("header", "true")
 		    .option("delimiter", "\t")
 		    .csv("wikiWords.tsv");
-		*/
+
 		//#################################    2.6    ##################################	
 		
-		Dataset<Row> wikiDistinct = wikiWords.dropDuplicates();
+		Dataset<Row> wikiDistinct = wikiWordDF.dropDuplicates();
 		
-		WindowSpec window = Window.orderBy("userid"); //row_number() requires window to be ordered
+		WindowSpec windowNew = Window.orderBy("userid"); //row_number() requires window to be ordered
 		
-		Dataset<Row> keywordDS = entryDS.withColumn("id", row_number().over(window)) 
+		Dataset<Row> keywordDF = entryDS.withColumn("id", row_number().over(windowNew)) 
 				.select("id","keywords")
 				.withColumn("title",explode(split(col("keywords")," "))) 
 				.drop("keywords")
 				.filter(callUDF("isDummy",col("title")));
 		
-		keywordDS.show(1000,false);
+		//removing stop words
+		Dataset<Row> keywordsNonDF = keywordDF.join(stopDF,col("title").equalTo(col("stopWords")),"left_anti");
 		
-		Dataset<Row> noStopDF = keywordDS.join(stopDF,col("title").equalTo(col("stopWords")),"left_anti");
+		Dataset<Row> finalDF = keywordsNonDF.join(wikiDistinct, "title").dropDuplicates("id");
+		//afairoume ta dipla id dioti an kapoio exei matcharei me ena estw wiki word tote theoreitai success
 		
-		System.out.println("Exploded entries nonStop: " + noStopDF.count());
-		
-		Dataset<Row> finalDF = noStopDF.join(wikiDistinct, "title")
-				.dropDuplicates("id");
-		
-		//finalDF.show(1000,false);
-		//System.out.println("Searches with results from Wikipedia: " + finalDF.count());
 		System.out.println("Persentage of searches with results from Wikipedia: " + 
-				+ finalDF.count() *100.0/ noStopDF.dropDuplicates("id").count());
+				+ finalDF.count() * 100.0/ keywordsNonDF.dropDuplicates("id").count());
+		//afairoume duplicates kathws exoume kanei expand ta keywords,
+		//de bazoume tis arxikes eggrafes kathws kapoies exoun fygei me ta stop words
 	}
 }
