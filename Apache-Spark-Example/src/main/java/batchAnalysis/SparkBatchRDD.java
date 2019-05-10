@@ -1,4 +1,4 @@
-package BatchAnalysis;
+package batchAnalysis;
 
 public class SparkBatchRDD {
 
