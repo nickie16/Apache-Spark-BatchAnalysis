@@ -21,6 +21,11 @@ public class SparkNtuaJoin {
 
 	private static final Logger LOG = LoggerFactory.getLogger(SparkNtuaJoin.class.getName());
 
+	private static final String DELIMITER = "\t";
+
+	private static final int LEFT_TAG = 0;
+	private static final int RIGHT_TAG = 1;
+
 	public static void main(String[] args) {
 
 		SparkConf conf = new SparkConf().setAppName("Joins").set("spark.hadoop.validateOutputSpecs", "false");
@@ -41,16 +46,16 @@ public class SparkNtuaJoin {
 		broadcastJoin(sc, leftArray, rightArray);
 
 		sc.close();
-
 	}
 
 	public static void repartitionJoin(JavaPairRDD<String, String> leftArray, JavaPairRDD<String, String> rightArray) {
 		LOG.debug("START Repartition Join");
 
 		JavaPairRDD<String, Tuple2<String, Integer>> leftArrayTag = leftArray
-				.mapToPair(tuple -> new Tuple2<String, Tuple2<String, Integer>>(tuple._1, new Tuple2<String, Integer>(tuple._2, 0)));
+				.mapToPair(tuple -> new Tuple2<String, Tuple2<String, Integer>>(tuple._1, new Tuple2<String, Integer>(tuple._2, LEFT_TAG)));
 		JavaPairRDD<String, Tuple2<String, Integer>> rightArrayTag = rightArray
-				.mapToPair(tuple -> new Tuple2<String, Tuple2<String, Integer>>(tuple._1, new Tuple2<String, Integer>(tuple._2, 1)));
+				.mapToPair(
+						tuple -> new Tuple2<String, Tuple2<String, Integer>>(tuple._1, new Tuple2<String, Integer>(tuple._2, RIGHT_TAG)));
 
 		JavaPairRDD<String, Tuple2<String, Integer>> allArray = leftArrayTag.union(rightArrayTag);
 
@@ -60,7 +65,7 @@ public class SparkNtuaJoin {
 			Iterator<Tuple2<String, Integer>> aux = tuple._2.iterator();
 			while (aux.hasNext()) {
 				Tuple2<String, Integer> value = aux.next();
-				if (value._2 == 0) {
+				if (value._2 == LEFT_TAG) {
 					left.add(value._1);
 				} else {
 					right.add(value._1);
@@ -82,12 +87,13 @@ public class SparkNtuaJoin {
 
 		Broadcast<List<Tuple2<String, String>>> brArray = sc.broadcast(rightArray.collect());
 
-		MultiValuedMap<String, String> map = new ArrayListValuedHashMap<>();
+		MultiValuedMap<String, String> rightArrayMap = new ArrayListValuedHashMap<>();
 
-		brArray.value().forEach(tuple -> map.put(tuple._1, tuple._2));
+		brArray.value().forEach(tuple -> rightArrayMap.put(tuple._1, tuple._2)); // αντ' αυτού θα μπορούσε να γίνεται collect ο πίνακας
+		// να μπαίνουν τα στοιχεία σε map και broadcast το map έπειτα
 
 		JavaRDD<String> result = leftArray.flatMap(tuple -> {
-			return map.get(tuple._1).stream().map(value -> tuple._1 + ", " + tuple._2 + ", " + value).collect(Collectors.toList())
+			return rightArrayMap.get(tuple._1).stream().map(value -> tuple._1 + ", " + tuple._2 + ", " + value).collect(Collectors.toList())
 					.iterator();
 		});
 
@@ -95,5 +101,12 @@ public class SparkNtuaJoin {
 		result.collect().forEach(System.out::println);
 
 		result.saveAsTextFile("hdfs:/nikmand/resultBroadcast");
+	}
+
+	private static JavaPairRDD<String, String> transform(JavaRDD<String> table) { // in this example we use only two columns
+		return table.mapToPair(line -> {
+			String[] words = line.split(DELIMITER);
+			return new Tuple2<String, String>(words[0], words[1]);
+		});
 	}
 }
