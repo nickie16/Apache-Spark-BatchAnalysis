@@ -1,4 +1,4 @@
-package batchAnalysis;
+package batch.play;
 
 import java.util.ArrayList;
 import java.util.Iterator;

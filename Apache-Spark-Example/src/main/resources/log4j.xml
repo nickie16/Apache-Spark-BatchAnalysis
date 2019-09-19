@@ -8,7 +8,7 @@
     </layout>
   </appender>
   
-  <logger name="batchAnalysis" additivity="false">
+  <logger name="batch" additivity="false">
     <level value="DEBUG" />
     <appender-ref ref="console" />
   </logger>

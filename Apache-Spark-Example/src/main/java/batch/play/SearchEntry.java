@@ -1,11 +1,11 @@
-package batchAnalysis;
+package batch.play;
 
 import java.io.Serializable;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.List;
 
-import batchAnalysis.SparkBatch;
+import batch.play.SparkBatch;
 
 
 @SuppressWarnings("serial")

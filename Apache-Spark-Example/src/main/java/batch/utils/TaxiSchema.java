@@ -1,4 +1,4 @@
-package batchAnalysisAux;
+package batch.utils;
 
 public class TaxiSchema {
 
@@ -8,7 +8,7 @@ public class TaxiSchema {
 	public static final String TRIP_TIME_START = "start_time";
 	public static final String TRIP_TIME_END = "end_time";
 	public static final String TRIP_LONGITUDE_START = "start_longitude";
-	public static final String TRIP_LATITUDE_START = "stop_latitude";
+	public static final String TRIP_LATITUDE_START = "start_latitude";
 	public static final String TRIP_LONGITUDE_END = "end_longitude";
 	public static final String TRIP_LATITUDE_END = "end_latitude";
 	public static final String TRIP_COST = "cost";

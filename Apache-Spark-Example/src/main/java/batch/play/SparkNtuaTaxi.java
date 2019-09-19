@@ -1,4 +1,4 @@
-package batchAnalysis;
+package batch.play;
 
 import static org.apache.spark.sql.functions.callUDF;
 import static org.apache.spark.sql.functions.col;
@@ -26,7 +26,7 @@ import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import batchAnalysisAux.TaxiSchema;
+import batch.utils.TaxiSchema;
 import scala.Tuple2;
 import scala.Tuple5;
 
@@ -152,7 +152,8 @@ public class SparkNtuaTaxi {
 			return new Tuple2<Integer, Float>(x._1, (float) sum / size / 60.0F); //cast to minutes
 		});
 
-		//qurOneRDD.collect().forEach(System.out::println);
+		LOG.debug("Retults of first query:");
+		qurOneRDD.collect().forEach(System.out::println);
 
 		// 2nd query
 

@@ -1,4 +1,4 @@
-package batchAnalysis;
+package batch.play;
 
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
