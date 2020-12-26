@@ -1,5 +1,8 @@
 package batch.utils;
 
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructType;
+
 public class TaxiSchema {
 
 	// tripData fields
@@ -23,4 +26,18 @@ public class TaxiSchema {
 	public static final String TRIP_DISTANCE = "distance (km)";
 	public static final String TRIP_DURATION = "duration (min)";
 	public static final String TRIP_SPEED = "speed (km/h)";
+
+	public static StructType tripDataSchema = new StructType()
+			.add(TRIP_ID, DataTypes.StringType)
+			.add(TRIP_TIME_START, DataTypes.TimestampType)
+			.add(TRIP_TIME_END, DataTypes.TimestampType)
+			.add(TRIP_LONGITUDE_START, DataTypes.DoubleType)  // γεωγραφικό μήκος
+			.add(TRIP_LATITUDE_START, DataTypes.DoubleType)   // γεωγραφικό πλάτος
+			.add(TRIP_LONGITUDE_END, DataTypes.DoubleType)
+			.add(TRIP_LATITUDE_END, DataTypes.DoubleType)
+			.add(TRIP_COST, DataTypes.FloatType);
+
+	public static StructType tripVendorsSchema = new StructType()
+			.add(TRIP_ID, DataTypes.StringType)
+			.add(TRIP_VENDOR, DataTypes.StringType);
 }

@@ -10,7 +10,7 @@ public class Settings {
 	protected boolean local = false;
 
 	@Parameter(names = "-appName", required = false, description = "The spark application name")
-	protected String appName = "";
+	protected String appName = null;
 
 	@Parameter(names = "-dataFolder", required = false, description = "IO folder")
 	protected String dataFolder = "src/test/resources/";
@@ -24,8 +24,11 @@ public class Settings {
 	@Parameter(names = "-disableAutoBroadcastJoin", required = false, description = "")
 	private boolean disableAutoBroadcastJoin = false;
 
-	@Parameter(names = "-createUseParquet", required = false, description = "")
-	protected boolean createUseParquet = false;
+	@Parameter(names = "-useParquet", required = false, description = "")
+	protected boolean useParquet = false;
+
+	@Parameter(names = "-cache", required = false, description = "")
+	protected boolean cache = false;
 
 	public boolean isLocal() {
 		return local;
@@ -51,7 +54,12 @@ public class Settings {
 		return disableAutoBroadcastJoin;
 	}
 
-	public boolean isCreateUseParquet() {
-		return createUseParquet;
+	public boolean isUseParquet() {
+		return useParquet;
 	}
+
+	public boolean iscache() {
+		return cache;
+	}
+
 }
