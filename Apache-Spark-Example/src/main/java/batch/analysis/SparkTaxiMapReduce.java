@@ -49,14 +49,12 @@ public class SparkTaxiMapReduce {
 
 		String dataFolder = settings.getDataFolder();
 
-		JavaRDD<String> tripDataRDD = sc.textFile(dataFolder + "yellow_tripdata_1m.csv"); // settings.getTripData()
+		JavaRDD<String> tripDataRDD = sc.textFile(dataFolder + settings.getTripData());
 
-		JavaPairRDD<String, String> tripVendorsRDD = sc.textFile(dataFolder + "yellow_tripvendors_1m.csv").mapToPair(line -> {
+		JavaPairRDD<String, String> tripVendorsRDD = sc.textFile(dataFolder + settings.getTripVendor()).mapToPair(line -> {
 			String[] arr = line.split(Constants.DELIMITER);
-			return new Tuple2<String, String>(arr[0], arr[1]); // settings.getTripVendor()
+			return new Tuple2<String, String>(arr[0], arr[1]);
 		});
-
-		// tripVendorsRDD.collect().forEach(System.out::println);
 
 		/*
 		 * NOTE: Due to the addition/removal of various columns based on the needs of each query
@@ -91,15 +89,13 @@ public class SparkTaxiMapReduce {
 		JavaPairRDD<Integer, Long> queryOneRDD = tripDataRDD.mapToPair(x -> {
 			String[] fields = x.split(Constants.DELIMITER);
 			Long duration = Functions.timeDiff(fields[1], fields[2]);
-			LocalDateTime timeStart = LocalDateTime.parse(fields[1], Constants.formatter);
+			LocalDateTime timeStart = LocalDateTime.parse(fields[1], Constants.formatter); // LocalDateTime IS thread safe
 			return new Tuple2<Integer, Long>(timeStart.getHour(), duration);
 		});
 
-		// queryOneRDD.collect().forEach(System.out::println);
-
 		JavaPairRDD<Integer, Float> qurOneRDD = queryOneRDD.filter(x -> {
 			return x._1 != null && x._2 != null;
-		}).groupByKey().sortByKey().mapToPair(x -> {
+		}).groupByKey().mapToPair(x -> {
 			long sum = 0;
 			int size = 0;
 			for (Long l : x._2) {
@@ -107,7 +103,7 @@ public class SparkTaxiMapReduce {
 				size += 1;
 			}
 			return new Tuple2<Integer, Float>(x._1, (float) sum / size / 60.0F); //cast to minutes
-		});
+		}).sortByKey();
 
 		// alternately we could use reduceByKey formatting a tuple (sum, count) and then applying a map phase
 
@@ -122,11 +118,10 @@ public class SparkTaxiMapReduce {
 		});
 
 		JavaPairRDD<String, Tuple2<String, String>> qurTwoRDD = queryTwoRDD.join(tripVendorsRDD);
-
-		//qurTwoRDD.collect().forEach(System.out::println);
+		// is there a 1-1 relationship or there are duplicates due to errors ?
 
 		JavaPairRDD<String, Float> qTwoRDD = qurTwoRDD.mapToPair(x -> {
-			Tuple2<String, String> entries = x._2;
+			Tuple2<String, String> entries = x._2; // x._2: columns of both files
 			String[] arr = entries._1.split(Constants.DELIMITER);
 			float cost = Float.parseFloat(arr[arr.length - 1]);
 			String vendor = entries._2;
@@ -152,8 +147,6 @@ public class SparkTaxiMapReduce {
 			LocalDateTime timeStart = LocalDateTime.parse(list.get(0), Constants.formatter);
 			return timeStart.getDayOfMonth() > 10;
 		});
-
-		//queryThreeRDD.collect().forEach(System.out::println);
 
 		JavaRDD<Tuple5<String, Double, Double, Long, String>> qurThreeRDD = queryThreeRDD.map(list -> {
 			long duration = Functions.timeDiff(list.get(0), list.get(1));
