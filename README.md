@@ -1,3 +1,3 @@
-# Apache-Spark-Example
+# Apache-Spark-DataAnalysis
 
-Solution for the project of Advanced Databases course, ECE-NTUA. Use of Spark instead of Map Reduce 
+Solution for the project of Advanced Databases course, ECE-NTUA.
